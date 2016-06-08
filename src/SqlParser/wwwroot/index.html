@@ -1,0 +1,14 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>SQL Parser</title>
+    <link rel="stylesheet" href="app.css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.min.js"></script>
+    <script src="app.js"></script>
+</head>
+<body ng-app="SqlParserApp" ng-controller="SqlParserCtrl as $ctrl">
+    <textarea ng-model="$ctrl.input" ng-change="$ctrl.onInputChange()"></textarea>
+    <textarea ng-model="$ctrl.output" readonly="readonly"></textarea>
+</body>
+</html>

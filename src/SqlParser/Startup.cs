@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 
 namespace SqlParser
@@ -49,6 +51,20 @@ namespace SqlParser
             app.UseApplicationInsightsRequestTelemetry();
 
             app.UseApplicationInsightsExceptionTelemetry();
+
+            ////DefaultFilesOptions options = new DefaultFilesOptions();
+            //options.DefaultFileNames.Clear();
+            //options.DefaultFileNames.Add("index.html");
+            //app.UseDefaultFiles(options);
+
+            ////app.UseStaticFiles(new StaticFileOptions {
+            ////    FileProvider = new PhysicalFileProvider(env.ContentRootPath),
+            ////    RequestPath = new PathString("//wwwroot")
+            ////});
+
+            app.UseDefaultFiles();
+
+            app.UseStaticFiles();
 
             app.UseMvc();
         }
