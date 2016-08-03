@@ -1,62 +1,62 @@
 var App = (function () {
     function App() {
         this.output = '';
-        this.input = "sp_executesql N'SELECT * FROM AdventureWorks2012.HumanResources.Employee WHERE BusinessEntityID = @level', N'@level tinyint', @level = 109;";
+        this.input = "sp_executesql N'SELECT * FROM AdventureWorks2012.HumanResources.Employee WHERE BusinessEntityID = @level and name = @name', N'@level tinyint, @name nvarchar(max)', @level = 109, @name = N'blah blah blacksheep''s'";
         this.onInputChange();
     }
     App.prototype.onInputChange = function () {
+        var _this = this;
         this.reset();
+        var getString = function (input) {
+            var startIndex = input.indexOf("'");
+            var endIndex = _this.getStringEndIndex(input, startIndex);
+            var parsedString = input.slice(startIndex + 1, endIndex);
+            return {
+                theString: _this.unDelimit(parsedString),
+                remainder: input.slice(endIndex + 1)
+            };
+        };
         // remove the initial executsql to get to the beginning of the sql statement
-        var statementStart = this.input.indexOf("'");
-        var statementEnd = this.stringEnd(this.input, statementStart);
-        this.statement = this.input.slice(statementStart + 1, statementEnd);
-        var source = this.input.slice(statementEnd);
-        var ecruos = this.reverse(source);
-        for (var j = 0; j < ecruos.length; j++) {
-            if (ecruos === 'N ,') {
-                break;
+        var nextString = getString(this.input);
+        this.statement = nextString.theString;
+        nextString = getString(nextString.remainder);
+        var declarations = nextString.theString.split(',');
+        this.params = declarations.map(function (d) {
+            var pieces = d.trim().split(' ');
+            return {
+                name: pieces[0],
+                type: pieces[1],
+                val: undefined
+            };
+        });
+        this.params.forEach(function (p) {
+            var varStartIndex = nextString.remainder.indexOf(p.name);
+            var equalsIndex = nextString.remainder.indexOf('=', varStartIndex);
+            var remainder = nextString.remainder.slice(equalsIndex + 1).trim();
+            if (remainder.indexOf("N'") === 0) {
+                p.val = "'" + getString(remainder.slice(remainder.indexOf("N'"))).theString + "'";
             }
-            var commaIndex = ecruos.indexOf(',');
-            var quoteIndex = ecruos.indexOf("'");
-            var tokenIndex = -1;
-            var term = void 0;
-            var assignment;
-            if (quoteIndex > commaIndex) {
-                term = this.reverse(ecruos.substring(0, commaIndex));
-                if (term.indexOf('=')) {
-                    assignment = term.split('=').map(function (t) { return t.trim(); });
-                    this.params.push({
-                        name: assignment[0],
-                        val: assignment[1],
-                        type: undefined
-                    });
+            else {
+                var end = remainder.indexOf(',');
+                if (end > 0) {
+                    p.val = remainder.slice(0, end);
                 }
-                tokenIndex = commaIndex;
+                else {
+                    p.val = remainder;
+                }
             }
-            else if (commaIndex > quoteIndex) {
-                if (quoteIndex === 0) {
-                    quoteIndex = ecruos.indexOf("'", 1);
-                }
-                term = this.reverse(ecruos.substring(0, quoteIndex));
-                if (term.indexOf(' ')) {
-                    assignment = term.split(' ').map(function (t) { return t.trim(); });
-                    console.log(assignment);
-                    var param = this.params.filter(function (t) { return t.name === assignment[0]; }).pop();
-                    param.type = assignment[1];
-                }
-                tokenIndex = quoteIndex;
-            }
-            console.log(ecruos);
-            ecruos = ecruos.slice(tokenIndex + 1);
-            console.log(ecruos);
+        });
+        console.log(nextString.remainder);
+        var vals = nextString.remainder;
+        for (var j = 0; j < vals.length; j++) {
         }
-        this.output = this.params.filter(function (t) { return !!t.name; }).map(function (t) { return ("DECLARE " + t.name + " " + t.type + " = " + t.val); }).join('\n') + '\n\n\n' + this.statement;
+        this.output = this.params.filter(function (t) { return !!t.name; }).map(function (t) { return ("DECLARE " + t.name + " " + t.type + " = " + t.val + ";"); }).join('\n') + '\n\n\n' + this.statement;
     };
-    App.prototype.stringEnd = function (str, start) {
+    App.prototype.getStringEndIndex = function (str, start) {
         for (var i = start + 1; i < str.length; i++) {
             if (str[i] === "'") {
-                if (str[i + 1] !== "'") {
-                    return i;
+                if (str[++i] !== "'") {
+                    return i - 1;
                 }
             }
         }
@@ -71,14 +71,6 @@ var App = (function () {
             retval += val[i];
         }
         return retval;
-    };
-    App.prototype.reverse = function (str) {
-        var val = '';
-        var len = str.length;
-        while (--len > 0) {
-            val += str[len];
-        }
-        return val;
     };
     App.prototype.reset = function () {
         this.output = '';

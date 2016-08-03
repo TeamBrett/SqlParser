@@ -2,7 +2,7 @@
 
 interface IParam {
     name: string;
-    val: string;
+    val: any;
     type: string;
 }
 
@@ -10,7 +10,7 @@ class App {
     public input: string;
     public output: string = '';
     constructor() {
-        this.input = `sp_executesql N'SELECT * FROM AdventureWorks2012.HumanResources.Employee WHERE BusinessEntityID = @level', N'@level tinyint', @level = 109;`;
+        this.input = `sp_executesql N'SELECT * FROM AdventureWorks2012.HumanResources.Employee WHERE BusinessEntityID = @level and name = @name', N'@level tinyint, @name nvarchar(max)', @level = 109, @name = N'blah blah blacksheep''s'`;
         this.onInputChange();
     }
 
@@ -20,61 +20,63 @@ class App {
     public onInputChange(): void {
         this.reset();
 
-        // remove the initial executsql to get to the beginning of the sql statement
-        const statementStart = this.input.indexOf("'");
-        const statementEnd = this.stringEnd(this.input, statementStart);
-        this.statement = this.input.slice(statementStart + 1, statementEnd);
-        const source = this.input.slice(statementEnd);
-        let ecruos = this.reverse(source);
-        for (let j = 0; j < ecruos.length; j++) {
-            if (ecruos === 'N ,') {
-                break;
+        const getString = (input: string): { theString: string, remainder: string } => {
+            const startIndex = input.indexOf("'");
+            const endIndex = this.getStringEndIndex(input, startIndex);
+            const parsedString = input.slice(startIndex + 1, endIndex);
+            return {
+                theString: this.unDelimit(parsedString),
+                remainder: input.slice(endIndex + 1)
             }
-            const commaIndex = ecruos.indexOf(',');
-            let quoteIndex = ecruos.indexOf("'");
-            let tokenIndex = -1;
-            let term: string;
-            var assignment: string[];
-            if (quoteIndex > commaIndex) {
-                term = this.reverse(ecruos.substring(0, commaIndex));
-                if (term.indexOf('=')) {
-                    assignment = term.split('=').map(t => t.trim());
-                    this.params.push({
-                        name: assignment[0],
-                        val: assignment[1],
-                        type: undefined
-                    });
-                }
-
-                tokenIndex = commaIndex;
-            } else if (commaIndex > quoteIndex) {
-                if (quoteIndex === 0) {
-                    quoteIndex = ecruos.indexOf("'", 1);
-                }
-                term = this.reverse(ecruos.substring(0, quoteIndex));
-                if (term.indexOf(' ')) {
-                    assignment = term.split(' ').map(t => t.trim());
-                    console.log(assignment);
-                    const param = this.params.filter(t => t.name === assignment[0]).pop();
-                    param.type = assignment[1];
-                }
-
-                tokenIndex = quoteIndex;
-            }
-
-            console.log(ecruos);
-            ecruos = ecruos.slice(tokenIndex + 1);
-            console.log(ecruos);
         }
 
-        this.output = this.params.filter(t => !!t.name).map(t => `DECLARE ${t.name} ${t.type} = ${t.val}`).join('\n') + '\n\n\n' + this.statement;
+        // remove the initial executsql to get to the beginning of the sql statement
+        let nextString = getString(this.input);
+        this.statement = nextString.theString;
+
+        nextString = getString(nextString.remainder);
+
+        let declarations = nextString.theString.split(',');
+
+        this.params = declarations.map(d => {
+            const pieces = d.trim().split(' ');
+            return {
+                name: pieces[0],
+                type: pieces[1],
+                val: undefined
+            } as IParam;
+        });
+
+        this.params.forEach(p => {
+            const varStartIndex = nextString.remainder.indexOf(p.name);
+            const equalsIndex = nextString.remainder.indexOf('=', varStartIndex);
+            const remainder = nextString.remainder.slice(equalsIndex + 1).trim();
+            if (remainder.indexOf(`N'`) === 0) {
+                p.val = `'${getString(remainder.slice(remainder.indexOf(`N'`))).theString}'`;
+            } else {
+                const end = remainder.indexOf(',');
+                if (end > 0) {
+                    p.val = remainder.slice(0, end);
+                } else {
+                    p.val = remainder;
+                }
+            }
+        });
+
+        console.log(nextString.remainder);
+        let vals = nextString.remainder;
+        for (let j = 0; j < vals.length; j++) {
+            
+        }
+
+        this.output = this.params.filter(t => !!t.name).map(t => `DECLARE ${t.name} ${t.type} = ${t.val};`).join('\n') + '\n\n\n' + this.statement;
     }
 
-    private stringEnd(str: string, start: number): number {
+    private getStringEndIndex(str: string, start: number): number {
         for (let i = start + 1; i < str.length; i++) {
             if (str[i] === "'") {
-                if (str[i + 1] !== "'") {
-                    return i;
+                if (str[++i] !== "'") {
+                    return i - 1;
                 }
             }
         }
@@ -93,16 +95,6 @@ class App {
         }
 
         return retval;
-    }
-
-    private reverse(str: string): string {
-        let val = '';
-        let len = str.length;
-        while (--len > 0) {
-            val += str[len];
-        }
-
-        return val;
     }
 
     private reset(): void {
