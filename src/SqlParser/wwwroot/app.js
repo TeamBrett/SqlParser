@@ -1,9 +1,36 @@
 var App = (function () {
     function App() {
         this.output = '';
-        this.input = "sp_executesql N'SELECT * FROM AdventureWorks2012.HumanResources.Employee WHERE BusinessEntityID = @level and name = @name', N'@level tinyint, @name nvarchar(max)', @level = 109, @name = N'blah blah blacksheep''s'";
+        this.styles = {};
+        this.updateColor();
         this.onInputChange();
     }
+    App.prototype.onBackgroundColorChange = function () {
+        window.localStorage.setItem('backgroundColor', this.backgroundColor);
+        this.updateColor();
+    };
+    App.prototype.onFontColorChange = function () {
+        window.localStorage.setItem('fontColor', this.fontColor);
+        this.updateColor();
+    };
+    App.prototype.updateColor = function () {
+        var bgc = window.localStorage.getItem('backgroundColor');
+        ;
+        if (bgc) {
+            if (this.backgroundColor !== bgc) {
+                this.backgroundColor = bgc;
+            }
+            this.styles['background-color'] = bgc;
+        }
+        var fc = window.localStorage.getItem('fontColor');
+        ;
+        if (fc) {
+            if (this.fontColor !== fc) {
+                this.fontColor = fc;
+            }
+            this.styles['color'] = fc;
+        }
+    };
     App.prototype.onInputChange = function () {
         var _this = this;
         this.reset();
@@ -73,6 +100,7 @@ var App = (function () {
         return retval;
     };
     App.prototype.reset = function () {
+        this.input = this.input || '';
         this.output = '';
         this.params = new Array();
     };

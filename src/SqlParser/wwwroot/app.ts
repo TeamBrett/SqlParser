@@ -1,4 +1,5 @@
 ﻿declare var angular: any;
+declare var window: any;
 
 interface IParam {
     name: string;
@@ -10,12 +11,46 @@ class App {
     public input: string;
     public output: string = '';
     constructor() {
-        this.input = `sp_executesql N'SELECT * FROM AdventureWorks2012.HumanResources.Employee WHERE BusinessEntityID = @level and name = @name', N'@level tinyint, @name nvarchar(max)', @level = 109, @name = N'blah blah blacksheep''s'`;
+        this.updateColor();
         this.onInputChange();
     }
 
     public params: Array<IParam>;
     public statement: string;
+
+    public backgroundColor: string;
+    public fontColor: string;
+    public styles: any = {};
+
+    public onBackgroundColorChange() : void {
+        window.localStorage.setItem('backgroundColor', this.backgroundColor);
+        this.updateColor();
+    }
+
+    public onFontColorChange(): void {
+        window.localStorage.setItem('fontColor', this.fontColor);
+        this.updateColor();
+    }
+
+    public updateColor() {
+        const bgc = window.localStorage.getItem('backgroundColor');;
+        if (bgc) {
+            if (this.backgroundColor !== bgc) {
+                this.backgroundColor = bgc;
+            }
+
+            this.styles['background-color'] = bgc;
+        }
+
+        const fc = window.localStorage.getItem('fontColor');;
+        if (fc) {
+            if (this.fontColor !== fc) {
+                this.fontColor = fc;
+            }
+
+            this.styles['color'] = fc;
+        }
+    }
 
     public onInputChange(): void {
         this.reset();
@@ -98,6 +133,7 @@ class App {
     }
 
     private reset(): void {
+        this.input = this.input || '';
         this.output = '';
         this.params = new Array<IParam>();
     }
