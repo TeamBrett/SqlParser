@@ -8,7 +8,9 @@
     <script src="app.js"></script>
 </head>
 <body ng-app="SqlParserApp" ng-controller="SqlParserCtrl as $ctrl">
-    <textarea ng-model="$ctrl.input" ng-change="$ctrl.onInputChange()"></textarea>
-    <textarea ng-model="$ctrl.output" readonly="readonly"></textarea>
+    <input type="text" ng-model="$ctrl.backgroundColor" ng-change="$ctrl.onBackgroundColorChange()" />
+    <input type="text" ng-model="$ctrl.fontColor" ng-change="$ctrl.onFontColorChange()" />
+    <textarea ng-model="$ctrl.input" ng-change="$ctrl.onInputChange()" ng-style="$ctrl.styles"></textarea>
+    <textarea ng-model="$ctrl.output" readonly="readonly" ng-style="$ctrl.styles"></textarea>
 </body>
 </html>
